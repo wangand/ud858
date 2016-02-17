@@ -30,3 +30,31 @@ App Engine application for the Udacity training course.
 [4]: https://console.developers.google.com/
 [5]: https://localhost:8080/
 [6]: https://developers.google.com/appengine/docs/python/endpoints/endpoints_tool
+
+ud858
+=====
+
+Course code for Building Scalable Apps with Google App Engine in Python class
+
+https://apis-explorer.appspot.com/apis-explorer/?base=https://udacity-conference-1209.appspot.com/_ah/api#p/conference/v1/
+
+Task 1 Explain your design choices
+Session name           A String
+highlights             A String
+speaker                Defined as a String because it will be difficult to identify individual speakers
+duration              Integer containing hours
+typeOfSession          A String
+date                   Date object
+start time             4 digit integer showing time in 24 hour format as required
+
+
+Task 3 Solve the query related problem:
+How to handle all non-workshop sessions before 7pm? 
+1. An Inequality filter can only be applied to at most 1 property
+startdate > 15th June && maxattendees < 1000 NOT VALID
+2. A property with an inequality filter must be sorted first
+Of the sessions, we are applying inequality filters to two properties at once. This is a restricted query.
+Possible solution 1:
+Query all non workshops and use python to sort all before 7pm
+Possible solution 2:
+Query all sessions before 7pm, use python to excise all workshops

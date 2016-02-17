@@ -108,3 +108,38 @@ class ConferenceQueryForms(messages.Message):
     """ConferenceQueryForms -- multiple ConferenceQueryForm inbound form message"""
     filters = messages.MessageField(ConferenceQueryForm, 1, repeated=True)
 
+class Session(ndb.Model):
+    """Session -- Session object"""
+    sessionName     = ndb.StringProperty(required=True)
+    highlights      = ndb.StringProperty()
+    speaker         = ndb.StringProperty()
+    duration        = ndb.IntegerProperty()
+    typeOfSession   = ndb.StringProperty()
+    date            = ndb.DateProperty()
+    startTime       = ndb.IntegerProperty() 
+
+class SessionForm(messages.Message):
+    """SessionForm -- Session outbound form message"""
+    sessionName     = messages.StringField(1)
+    highlights      = messages.StringField(2)
+    speaker         = messages.StringField(3)
+    duration        = messages.IntegerField(4, variant=messages.Variant.INT32)
+    typeOfSession   = messages.StringField(5)
+    date            = messages.StringField(6) #DateTimeField()
+    startTime       = messages.IntegerField(7, variant=messages.Variant.INT32)
+    websafeKey      = messages.StringField(11)
+
+
+class SessionForms(messages.Message):
+    """Session Forms -- multiple Session outbound form message"""
+    items = messages.MessageField(ConferenceForm, 1, repeated=True)
+
+class WebSafeKeyQuery(messages.Message):
+    """WebSafeKeyQuery -- single conferencey key outbound form message"""
+    name = messages.StringField(1)
+    key = messages.StringField(2)
+    organizer = messages.StringField(3)
+
+class WebSafeKeys(messages.Message):
+    """WebSafeKeys -- multiple conference keys outbound form message"""
+    items = messages.MessageField(WebSafeKeyQuery, 1, repeated=True)

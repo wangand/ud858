@@ -36,6 +36,11 @@ from models import ConferenceForms
 from models import ConferenceQueryForm
 from models import ConferenceQueryForms
 from models import TeeShirtSize
+from models import Session
+from models import SessionForm
+from models import SessionForms
+from models import WebSafeKeys
+from models import WebSafeKeyQuery
 
 from settings import WEB_CLIENT_ID
 from settings import ANDROID_CLIENT_ID
@@ -84,6 +89,11 @@ CONF_POST_REQUEST = endpoints.ResourceContainer(
     websafeConferenceKey=messages.StringField(1),
 )
 
+SESS_POST_REQUEST = endpoints.ResourceContainer(
+    SessionForm,
+    websafeConferenceKey=messages.StringField(1,
+        required=True),
+)
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -327,6 +337,63 @@ class ConferenceApi(remote.Service):
                 conferences]
         )
 
+
+# - - - Session objects - - - - - - - - - - - - - - - - - - -
+
+    def _createSessionObject(self, request):
+        """Create a session object, return SessionForm"""
+        # get parent Conference from request; raise exception if not found
+        conf = ndb.Key(urlsafe=request.websafeConferenceKey).get()
+        if not conf:
+            raise endpoints.NotFoundException(
+                'No conference found with key: %s' % request.websafeConferenceKey)
+        return request
+
+
+    def _copySessionToForm(self, sess):
+        """Copy relevant fields from Session to SessionForm."""
+        sf = SessionForm()
+        for field in sf.all_fields():
+            if hasattr(sess, field.name):
+                # convert date to date string; just copy others
+                if field.name.endswith('date'):
+                    setattr(sf, field.name, str(getattr(conf, field.name)))
+                else:
+                    setattr(sf, field.name, getattr(conf, field.name))
+            elif field.name == "websafeKey":
+                setattr(sf, field.name, sess.key.urlsafe())
+        se.check_initialized()
+        return sf
+
+
+    @endpoints.method(SESS_POST_REQUEST, SessionForm, path='session',
+            http_method='POST', name='createSession')
+    def createSession(self, request):
+        """Create a new Session"""
+        return self._createSessionObject(request)
+
+
+    @endpoints.method(message_types.VoidMessage, WebSafeKeys,
+            path='websafekeys', http_method='GET', name='getWebSafeKeys')
+    def getWebSafeKeys(self, request):
+        """Get websafekeys for all conferences"""
+        # Query all conferences for their websafe keys
+        items = []
+        query = Conference.query()
+        for conf in query.fetch():
+            temp = conf.key.parent().get()
+            items.append([conf.name, conf.key.urlsafe(), temp.displayName])
+
+        # Create and send message with all the keys, names, and organizers
+        keys = []
+        wsk = WebSafeKeys()
+        q = WebSafeKeyQuery()
+        for i in items:
+            temp = WebSafeKeyQuery(name=i[0], key=i[1], organizer=i[2])
+            keys.append(temp)
+        wsk.items = keys
+        wsk.check_initialized()
+        return wsk
 
 # - - - Profile objects - - - - - - - - - - - - - - - - - - -
 
