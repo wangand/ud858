@@ -43,10 +43,15 @@ Session name           A String
 highlights             A String
 speaker                Defined as a String because it will be difficult to identify individual speakers
 duration              Integer containing hours
-typeOfSession          A String
+typeOfSession          A String that is stored and queried in all uppercase
 date                   Date object
 start time             4 digit integer showing time in 24 hour format as required
 
+
+Task 2 Wishlist
+Wishlist was added as a repeatable property in the Profile object. This is because this info is very much associated with the user.
+Additionally many users may have empty wish lists so it does not make sense to create a wishlist object for each user when this object
+may not be used.
 
 Task 3 Solve the query related problem:
 How to handle all non-workshop sessions before 7pm? 

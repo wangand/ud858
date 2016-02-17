@@ -112,7 +112,7 @@ class Session(ndb.Model):
     """Session -- Session object"""
     sessionName     = ndb.StringProperty(required=True)
     highlights      = ndb.StringProperty()
-    speaker         = ndb.StringProperty()
+    speaker         = ndb.StringProperty(required=True)
     duration        = ndb.IntegerProperty()
     typeOfSession   = ndb.StringProperty()
     date            = ndb.DateProperty()
@@ -129,10 +129,18 @@ class SessionForm(messages.Message):
     startTime       = messages.IntegerField(7, variant=messages.Variant.INT32)
     websafeKey      = messages.StringField(11)
 
+class SessionTypeForm(messages.Message):
+    """SessionTypeForm -- inbound query for type of session"""
+    websafeConferenceKey      = messages.StringField(1)
+    sessionType               = messages.StringField(2)
+
+class SessionSpeakerForm(messages.Message):
+    """SessionSpeakerForm -- inbound query for speaker"""
+    speaker = messages.StringField(1)
 
 class SessionForms(messages.Message):
     """Session Forms -- multiple Session outbound form message"""
-    items = messages.MessageField(ConferenceForm, 1, repeated=True)
+    items = messages.MessageField(SessionForm, 1, repeated=True)
 
 class WebSafeKeyQuery(messages.Message):
     """WebSafeKeyQuery -- single conferencey key outbound form message"""
@@ -143,3 +151,16 @@ class WebSafeKeyQuery(messages.Message):
 class WebSafeKeys(messages.Message):
     """WebSafeKeys -- multiple conference keys outbound form message"""
     items = messages.MessageField(WebSafeKeyQuery, 1, repeated=True)
+
+class WishListQuery(messages.Message):
+    """WishlistQuery -- single wishlist inbound form message"""
+    SessionKey = messages.StringField(1)
+
+class SessionKeyQuery(messages.Message):
+    """SessionKeyQuery -- single session key outbound form message"""
+    name = messages.StringField(1)
+    key = messages.StringField(2)
+
+class SessionKeys(messages.Message):
+    """SessionKeys -- multiple session keys outbound form message"""
+    items = messages.MessageField(SessionKeyQuery, 1, repeated=True)
