@@ -46,6 +46,8 @@ from models import SessionSpeakerForm
 from models import WishListQuery
 from models import SessionKeyQuery
 from models import SessionKeys
+from models import SessionKeyQuery
+from models import Wishlist
 
 from settings import WEB_CLIENT_ID
 from settings import ANDROID_CLIENT_ID
@@ -228,8 +230,7 @@ class ConferenceApi(remote.Service):
                 # write to Conference object
                 setattr(conf, field.name, data)
         conf.put()
-        #prof = ndb.Key(Profile, user_id).get()
-        prof = self._getProfileFromUser()
+        prof = ndb.Key(Profile, user_id).get()
         return self._copyConferenceToForm(conf, getattr(prof, 'displayName'))
 
 
@@ -532,18 +533,25 @@ class ConferenceApi(remote.Service):
             raise endpoints.NotFoundException(
                 'No profile found')
 
-        if profile.sessionWishList in (None, []):
-            profile.sessionWishList = [SessionKey]
-        else:
-            profile.sessionWishList.append(SessionKey)
+        # generate Wishlist ID based on User ID
+        w_id = Conference.allocate_ids(size=1, parent=p_key)[0]
+        w_key = ndb.Key(Wishlist, w_id, parent=p_key)
+        #data['organizerUserId'] = request.organizerUserId = user_id
+
+        # create Conference, send email to organizer confirming
+        # creation of Conference & return (modified) ConferenceForm
+        newWish = Wishlist(sessionKey=request.SessionKey)
+        #newWish.sessionKey = request.SessionKey
+        newWish.key = w_key
+        newWish.put()
 
         return request
 
 
-        @endpoints(message_types.VoidMessage, SessionForms,
-                name='getSessionsInWishlist')
-        def getSessionsInWishlist(self, request):
-            """Query for all the sessions that the user is interested in"""
+    @endpoints.method(message_types.VoidMessage, SessionForms, 
+            name="getSessionWishList")
+    def getSessionWishList(self, request):
+        """This function gets all wishlists of user.""" 
         # check for authentication
         user = endpoints.get_current_user()
         if not user:
@@ -558,15 +566,49 @@ class ConferenceApi(remote.Service):
                 'No profile found')
 
         # Output all sessions in profile
-        data = []
-        for i in profile.sessionWishList:
-            # get session from id
-            s_key = ndb.Key(urlsafe=i)
-            sess = s_key.get()
-            data.append(sess)
+        query = Wishlist.query(ancestor=p_key)
+        query = query.fetch()
+
+        slist = []
+        for q in query:
+            s_key = ndb.Key(urlsafe=q.sessionKey)
+            slist.append(self._copySessionToForm(s_key.get()))
 
         return SessionForms(
-            items=[self._copySessionToForm(s) for s in data])
+            items=slist)
+
+
+    @endpoints.method(WishListQuery, WishListQuery,
+            name='deleteSessionInWishlist')
+    def deleteSessionInWishlist(self, request):
+        """This function deletes specified wishlist of user"""
+        # check for authentication
+        user = endpoints.get_current_user()
+        if not user:
+            raise endpoints.UnauthorizedException('Authorization required')
+        user_id = getUserId(user)
+
+        # check for SessionKey
+        if not request.SessionKey:
+                raise endpoints.BadRequestException("'SessionKey' field required")
+
+        # Try and get the session object
+        s_key = ndb.Key(urlsafe=request.SessionKey)
+        sess = s_key.get()
+        if not sess:
+            raise endpoints.NotFoundException(
+                'No Session found with key: %s' % request.SessionKey)
+
+        # Check that it is ancestor
+        p_key = ndb.Key(Profile, user_id)
+        if s_key.parent() != p_key:
+            raise endpoints.BadRequestException("You don't own that session")
+
+        # delete the key
+        s_key.delete()
+
+        return request
+
 
 # - - - Additional Queries - - - - - - - - - - - - - - - - -
 
@@ -602,6 +644,27 @@ class ConferenceApi(remote.Service):
         query = Session.query()
         for sess in query.fetch():
             items.append([sess.sessionName, sess.key.urlsafe()])
+
+        # Create and send message with all keys and names
+        keys = []
+        wsk = SessionKeys()
+        for i in items:
+            temp = SessionKeyQuery(name=i[0], key=i[1])
+            keys.append(temp)
+        wsk.items = keys
+        wsk.check_initialized()
+        return wsk
+
+    @endpoints.method(message_types.VoidMessage, SessionKeys,
+            name='getWishlists')
+    def getWishlists(self, request):
+        """Get all wishlists"""
+        # Query all sessions for thier websafe keys
+        items = []
+        query = Wishlist.query()
+        for wish in query.fetch():
+            temp = wish.key.parent().get().displayName
+            items.append([temp, wish.key.urlsafe()])
 
         # Create and send message with all keys and names
         keys = []

@@ -164,3 +164,7 @@ class SessionKeyQuery(messages.Message):
 class SessionKeys(messages.Message):
     """SessionKeys -- multiple session keys outbound form message"""
     items = messages.MessageField(SessionKeyQuery, 1, repeated=True)
+
+class Wishlist(ndb.Model):
+    """Wishlist -- Wishlist object"""
+    sessionKey = ndb.StringProperty()
