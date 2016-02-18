@@ -1,68 +1,99 @@
-App Engine application for the Udacity training course.
+# Project 4 Conference Organization App
 
-## Products
-- [App Engine][1]
+## Installation
+The application is running at the following url:
+https://udacity-conference-1209.appspot.com
 
-## Language
-- [Python][2]
+Additionally the app can be run locally using the Conference_Central Complete directory with GoogleAppEngineLauncher
 
-## APIs
-- [Google Cloud Endpoints][3]
+## Usage
 
-## Setup Instructions
-1. Update the value of `application` in `app.yaml` to the app ID you
-   have registered in the App Engine admin console and would like to use to host
-   your instance of this sample.
-1. Update the values at the top of `settings.py` to
-   reflect the respective client IDs you have registered in the
-   [Developer Console][4].
-1. Update the value of CLIENT_ID in `static/js/app.js` to the Web client ID
-1. (Optional) Mark the configuration files as unchanged as follows:
-   `$ git update-index --assume-unchanged app.yaml settings.py static/js/app.js`
-1. Run the app with the devserver using `dev_appserver.py DIR`, and ensure it's running by visiting your local server's address (by default [localhost:8080][5].)
-1. (Optional) Generate your client library(ies) with [the endpoints tool][6].
-1. Deploy your application.
+### Access
 
-
-[1]: https://developers.google.com/appengine
-[2]: http://python.org
-[3]: https://developers.google.com/appengine/docs/python/endpoints/
-[4]: https://console.developers.google.com/
-[5]: https://localhost:8080/
-[6]: https://developers.google.com/appengine/docs/python/endpoints/endpoints_tool
-
-ud858
-=====
-
-Course code for Building Scalable Apps with Google App Engine in Python class
-
+To use the apis explorer with this application, use this url:
 https://apis-explorer.appspot.com/apis-explorer/?base=https://udacity-conference-1209.appspot.com/_ah/api#p/conference/v1/
 
-Task 1 Explain your design choices
-Session name           A String
-highlights             A String
-speaker                Defined as a String because it will be difficult to identify individual speakers
-duration              Integer containing hours
-typeOfSession          A String that is stored and queried in all uppercase
-date                   Date object
-start time             4 digit integer showing time in 24 hour format as required
+Additionally, if the project is running locally, it can be accessed at:
+localhost:<port#>/_ah/api/explorer
 
+### Testing
 
-Task 2 Wishlist
+Most functions can be tested by adding properties to the request body field on the functions page in the api explorer. By clicking on the request body field, properties can be added and specified. Some functions take an inbound VoidMessage type and do not need any properties to function. Because how the front end links to the endpoints is not yet specified, most path names have been left blank. In cases where the path has been specified, there may be additional fields in addition to the Request body field that take a url safe key. Otherwise, all properties are specified in the Request body.
+
+When required, url safe keys can be obtained from the datastore. The additional queries getWebSafeKeys(), getSessions(), and getWishlists() return a keys for all conferences, sessions, and wishlists respectively. These additional queries can be used to obtain url safe keys without needing to use the datastore.
+
+## Limitations
+
+There is no frontend support to these functions. Thus, except in obvious cases, the path variables for the endpoint methods have been intentionally left blank. In order to incorporate the new endpoints into a frontend, the blank path variables can be defined after fitting path names are decided.
+
+## Task 1 Explaination of design choices
+
+### Sessions
+
+Sessions are defined thusly:
+```
+class Session(ndb.Model):
+    """Session -- Session object"""
+    sessionName     = ndb.StringProperty(required=True)
+    highlights      = ndb.StringProperty()
+    speaker         = ndb.StringProperty(required=True)
+    duration        = ndb.IntegerProperty()
+    typeOfSession   = ndb.StringProperty()
+    date            = ndb.DateProperty()
+    startTime       = ndb.IntegerProperty()
+```
+
+The sessionName, highlights, and typeOfSession properties are defined as strings as they will contain either one or more words. Duration and startTime are defined as integers. Duration is expected to be a value representing minutes. The startTime property is expected to be an integer value specifying the hour and minute time in 24 hour form (eg. 1730 for 5:30pm) as was specified. The date property is defined as a DateProperty() as representing a date requires a suitable data structure.
+
+### Speakers
+
+In this application, speakers are implemented as a string containing the speaker's name. This is because additional functionality will be needed to added to provide ways of identifying and creating indivudal speaker objects. Sometimes, a user may only know the name of the speaker and have no additional identifying information. Additionally, it is unlikely that different speakers have the exact same name.
+
+## Task 2 Wishlist
+
 Wishlist was added as a repeatable property in the Profile object. This is because this info is very much associated with the user.
 Additionally many users may have empty wish lists so it does not make sense to create a wishlist object for each user when this object
 may not be used.
 
-Task 3 Solve the query related problem:
-How to handle all non-workshop sessions before 7pm? 
+## Task 3 Additional Queries
+
+### Indexes
+
+Indexes were created by first running the application locally and then deploying to appspot
+
+### Additional Queries
+
+#### Get all the keys to conferences
+
+The endpoints method getWebSafeKeys() queries all conferences and gets their web safe key, their name, and the name of the organizer. This is useful to access the conference keys and some basic info about each conference.
+
+#### Get all the keys to sessions
+
+The endpoints method getSessionKeys() queries all sessions and gets their web safe key and their name. This is useful to see all the sessions at once and to get their keys.
+
+#### Get all the keys to wishlists
+
+The endpoints method def getWishlists() queries all wish lists and reterns a web safe key and name for each one. This is useful when we want to see all the sessions that have been added to wishlists. 
+
+#### Query problems
+
+The functions getQueryProblem1 and getQueryProblem2 are implemented solutions to the query problems below
+
+### Query related problem
+
+Query restrictions:
 1. An Inequality filter can only be applied to at most 1 property
 startdate > 15th June && maxattendees < 1000 NOT VALID
 2. A property with an inequality filter must be sorted first
-Of the sessions, we are applying inequality filters to two properties at once. This is a restricted query.
+
+The problem with this query is that we are applying inequality filters to two properties at once. This is the second of the restricted queries copied above for reference.
+
 Possible solution 1:
 Query all non workshops and use python to sort all before 7pm
 Possible solution 2:
 Query all sessions before 7pm, use python to get all non workshops
-Both solutions worked when tested in api explorer without significant differences
-Times to execute searching through 8 sessions was between 300 - 400 ms
+Both solutions worked when tested in api explorer. These are endpoint functions getQueryProblem1 and getQueryProblem2 respectively. Both appeared to work without issue. Times for both solutions to search through 8 sessions was between 300 - 400 ms.
 
+## Task 4 Add a Task
+
+On the creation of a session, the speaker is automatically checked and a task is pushed into the task queue automatically if there is more than one session of this speaker in the same conference. This functionality can also be triggered manually by calling the endpoints method getFeaturedSpeaker(sessionKey) where the sessionKey is the valid urlsafe key of a session. In the case of manual triggering, the task will always be pushed. This allows a user to manually set a featured speaker even if they do not have more than one session thus increasing the app's flexibility.
