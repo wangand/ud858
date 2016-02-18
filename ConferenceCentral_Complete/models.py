@@ -152,6 +152,10 @@ class WebSafeKeys(messages.Message):
     """WebSafeKeys -- multiple conference keys outbound form message"""
     items = messages.MessageField(WebSafeKeyQuery, 1, repeated=True)
 
+class SessionQuery(messages.Message):
+    """SessionQuery -- single session inbound form message"""
+    sessionKey = messages.StringField(1)
+
 class WishListQuery(messages.Message):
     """WishlistQuery -- single wishlist inbound form message"""
     SessionKey = messages.StringField(1)

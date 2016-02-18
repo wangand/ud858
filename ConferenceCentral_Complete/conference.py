@@ -45,6 +45,7 @@ from models import SessionTypeForm
 from models import SessionSpeakerForm
 from models import WishListQuery
 from models import SessionKeyQuery
+from models import SessionQuery
 from models import SessionKeys
 from models import SessionKeyQuery
 from models import Wishlist
@@ -59,8 +60,10 @@ from utils import getUserId
 EMAIL_SCOPE = endpoints.EMAIL_SCOPE
 API_EXPLORER_CLIENT_ID = endpoints.API_EXPLORER_CLIENT_ID
 MEMCACHE_ANNOUNCEMENTS_KEY = "RECENT_ANNOUNCEMENTS"
+MEMCACHE_FEATURED_KEY = "FEATURED SPEAKER"
 ANNOUNCEMENT_TPL = ('Last chance to attend! The following conferences '
                     'are nearly sold out: %s')
+FEATURED_TPL = ('The featured speaker is: %s')
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 DEFAULTS = {
@@ -415,6 +418,16 @@ class ConferenceApi(remote.Service):
         #    'conferenceInfo': repr(request)},
         #    url='/tasks/send_confirmation_email'
         #)
+
+        # TASK 4
+        # Check for featured speaker
+        allConfs = Session.query(ancestor=c_key)
+        allConfs = allConfs.filter(Session.speaker == data['speaker'])
+        print len(allConfs.fetch())
+        if len(allConfs.fetch()) > 1:
+            print "FEATURED SPEAKER"
+            self._getFeaturedSpeaker(s_key.urlsafe())
+        
         return self._copySessionToForm(newSess)
 
 
@@ -675,6 +688,70 @@ class ConferenceApi(remote.Service):
         wsk.items = keys
         wsk.check_initialized()
         return wsk
+
+
+    @endpoints.method(message_types.VoidMessage, SessionForms,
+            name='getQueryProblem1')
+    def getQueryProblem1(self, request):
+        """One implementation of the Task 3 query related problem"""
+        sess = []
+        return SessionForms(
+            items=[self._copySessionToForm(s) for s in sess])
+
+
+    @endpoints.method(message_types.VoidMessage, SessionForms,
+            name='getQueryProblem2')
+    def getQueryProblem2(self, request):
+        """Another implementation of the Task 3 query related problem"""
+        sess = []
+        return SessionForms(
+            items=[self._copySessionToForm(s) for s in sess])
+
+
+# - - - Task Functions for getFeaturedSpeaker   - - - - - - -
+
+    @staticmethod
+    def _cacheSpeaker(sessionKey):
+        """Create featured speaker and put in memcache
+        used by SetFeaturedHandler"""
+
+        print "In _cacheSpeaker"
+
+        # Try and get the session object
+        s_key = ndb.Key(urlsafe=sessionKey)
+        sess = s_key.get()
+        if not sess:
+            # fail silently
+            temp = "Failed to find session for featured speaker"
+            memcache.set(MEMCACHE_FEATURED_KEY, temp)
+            return
+
+        # format featured speaker and set it in memcache
+        announcement = FEATURED_TPL % sess.speaker
+        memcache.set(MEMCACHE_FEATURED_KEY, announcement)
+
+
+    def _getFeaturedSpeaker(self, sessionKey):
+        """This function puts a featured speaker in taskqueue"""
+        taskqueue.add(params={'sessionKey': sessionKey},
+            url='/tasks/set_featured'
+        )
+
+
+    @endpoints.method(WishListQuery, WishListQuery,
+            name='getFeaturedSpeaker')
+    def getFeaturedSpeaker(self, request):
+        """Puts a features speaker in task queue for storage in memcache"""
+        # check for SessionKey
+        if not request.SessionKey:
+                raise endpoints.BadRequestException("'SessionKey' field required")
+
+        # send to memcache
+        key = request.SessionKey
+        self._getFeaturedSpeaker(key)
+
+        # return
+        return request
 
 
 # - - - Profile objects - - - - - - - - - - - - - - - - - - -
