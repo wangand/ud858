@@ -16,9 +16,11 @@ https://apis-explorer.appspot.com/apis-explorer/?base=https://udacity-conference
 Additionally, if the project is running locally, it can be accessed at:
 localhost:PORT#/_ah/api/explorer
 
+where PORT# is the port that the app is running on locally
+
 ### Testing
 
-Most functions can be tested by adding properties to the request body field on the function's page in the api explorer. By clicking on the request body field, properties can be added and specified. Some functions take an inbound VoidMessage type and do not need any properties to function. Because how the front end links to the endpoints is not yet specified, most path names have been left blank. In cases where the path has been specified, there may be additional fields in addition to the Request body field that take a url safe key. Otherwise, all properties are specified in the Request body.
+Functions can be tested via the api explorer interface. By clicking on the request body field, properties can be added and specified. Some functions take an inbound VoidMessage type and do not need any properties to function. Because the front end interface is not yet specified, most path names have been left blank. In cases where the path has been specified, there may be additional fields in addition to the Request body field that take a url safe key. Otherwise, all properties will be specified in the Request body.
 
 When required, url safe keys can be obtained from the datastore. The additional queries getWebSafeKeys(), getSessions(), and getWishlists() return a keys for all conferences, sessions, and wishlists respectively. These additional queries can be used to obtain url safe keys without needing to use the datastore.
 
@@ -51,9 +53,7 @@ In this application, speakers are implemented as a string containing the speaker
 
 ## Task 2 Wishlist
 
-Wishlist was added as a repeatable property in the Profile object. This is because this info is very much associated with the user.
-Additionally many users may have empty wish lists so it does not make sense to create a wishlist object for each user when this object
-may not be used.
+Wishlist was added as an entity with a string field containing the url safe key of a session object. The Wishlist is always created with a user as an ancestor. This means that the owner of the wishlist can be quickly found via ancestor query. Defining a Wishlist in this way means that a user can easily store none or many small wishlist objects.
 
 ## Task 3 Additional Queries
 

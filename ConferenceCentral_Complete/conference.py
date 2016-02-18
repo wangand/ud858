@@ -623,10 +623,10 @@ class ConferenceApi(remote.Service):
             raise endpoints.NotFoundException(
                 'No Session found with key: %s' % request.SessionKey)
 
-        # Check that it is ancestor
+        # Check that user is ancestor of wishlist
         p_key = ndb.Key(Profile, user_id)
         if s_key.parent() != p_key:
-            raise endpoints.BadRequestException("You don't own that session")
+            raise endpoints.BadRequestException("You don't own that wishlist")
 
         # delete the key
         s_key.delete()
