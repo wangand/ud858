@@ -62,4 +62,7 @@ Of the sessions, we are applying inequality filters to two properties at once. T
 Possible solution 1:
 Query all non workshops and use python to sort all before 7pm
 Possible solution 2:
-Query all sessions before 7pm, use python to excise all workshops
+Query all sessions before 7pm, use python to get all non workshops
+Both solutions worked when tested in api explorer without significant differences
+Times to execute searching through 8 sessions was between 300 - 400 ms
+

@@ -694,7 +694,9 @@ class ConferenceApi(remote.Service):
             name='getQueryProblem1')
     def getQueryProblem1(self, request):
         """One implementation of the Task 3 query related problem"""
-        sess = []
+        query = Session.query()
+        query = query.filter(Session.typeOfSession != "WORKSHOP").fetch()
+        sess = [x for x in query if x.startTime < 1900]
         return SessionForms(
             items=[self._copySessionToForm(s) for s in sess])
 
@@ -703,7 +705,9 @@ class ConferenceApi(remote.Service):
             name='getQueryProblem2')
     def getQueryProblem2(self, request):
         """Another implementation of the Task 3 query related problem"""
-        sess = []
+        query = Session.query()
+        query = query.filter(Session.startTime < 1900).fetch()
+        sess = [x for x in query if x.typeOfSession != "WORKSHOP"]
         return SessionForms(
             items=[self._copySessionToForm(s) for s in sess])
 
