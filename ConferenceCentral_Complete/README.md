@@ -14,11 +14,11 @@ To use the apis explorer with this application, use this url:
 https://apis-explorer.appspot.com/apis-explorer/?base=https://udacity-conference-1209.appspot.com/_ah/api#p/conference/v1/
 
 Additionally, if the project is running locally, it can be accessed at:
-localhost:<port#>/_ah/api/explorer
+localhost:PORT#/_ah/api/explorer
 
 ### Testing
 
-Most functions can be tested by adding properties to the request body field on the functions page in the api explorer. By clicking on the request body field, properties can be added and specified. Some functions take an inbound VoidMessage type and do not need any properties to function. Because how the front end links to the endpoints is not yet specified, most path names have been left blank. In cases where the path has been specified, there may be additional fields in addition to the Request body field that take a url safe key. Otherwise, all properties are specified in the Request body.
+Most functions can be tested by adding properties to the request body field on the function's page in the api explorer. By clicking on the request body field, properties can be added and specified. Some functions take an inbound VoidMessage type and do not need any properties to function. Because how the front end links to the endpoints is not yet specified, most path names have been left blank. In cases where the path has been specified, there may be additional fields in addition to the Request body field that take a url safe key. Otherwise, all properties are specified in the Request body.
 
 When required, url safe keys can be obtained from the datastore. The additional queries getWebSafeKeys(), getSessions(), and getWishlists() return a keys for all conferences, sessions, and wishlists respectively. These additional queries can be used to obtain url safe keys without needing to use the datastore.
 
@@ -82,8 +82,10 @@ The functions getQueryProblem1 and getQueryProblem2 are implemented solutions to
 ### Query related problem
 
 Query restrictions:
+
 1. An Inequality filter can only be applied to at most 1 property
 startdate > 15th June && maxattendees < 1000 NOT VALID
+
 2. A property with an inequality filter must be sorted first
 
 The problem with this query is that we are applying inequality filters to two properties at once. This is the second of the restricted queries copied above for reference.
