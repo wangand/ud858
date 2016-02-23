@@ -188,6 +188,11 @@ class WishListQuery(messages.Message):
     SessionKey = messages.StringField(1)
 
 
+class WishListDelete(messages.Message):
+    """WishListDelete -- single wishlist inbound form message"""
+    WishKey = messages.StringField(1)
+
+
 class SessionKeyQuery(messages.Message):
     """SessionKeyQuery -- single session key outbound form message"""
     name = messages.StringField(1)

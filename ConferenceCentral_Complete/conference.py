@@ -46,6 +46,7 @@ from models import WebSafeKeyQuery
 from models import SessionTypeForm
 from models import SessionSpeakerForm
 from models import WishListQuery
+from models import WishListDelete
 from models import SessionKeyQuery
 from models import SessionQuery
 from models import SessionKeys
@@ -430,19 +431,20 @@ class ConferenceApi(remote.Service):
         s_key = ndb.Key(Session, s_id, parent=c_key)
         data['key'] = s_key
 
-        # create Conference, send email to organizer confirming
-        # creation of Conference & return (modified) ConferenceForm
+        # return a session form with the same data as in the datastore
         newSess = Session(**data)
         newSess.put()
 
         # TASK 4
         # Check for featured speaker
-        allConfs = Session.query(ancestor=c_key)
-        allConfs = allConfs.filter(Session.speaker == data['speaker'])
-        print len(allConfs.fetch())
-        if len(allConfs.fetch()) > 1:
-            print "FEATURED SPEAKER"
-            self._getFeaturedSpeaker(s_key.urlsafe())
+        #allConfs = Session.query(ancestor=c_key)
+        #allConfs = allConfs.filter(Session.speaker == data['speaker'])
+        #print len(allConfs.fetch())
+        #if len(allConfs.fetch()) > 1:
+        #    print "FEATURED SPEAKER"
+        #    self._getFeaturedSpeaker(s_key.urlsafe())
+        taskqueue.add(params={'sessionKey': s_key.urlsafe()},
+                      url='/tasks/set_featured')
 
         return self._copySessionToForm(newSess)
 
@@ -564,8 +566,7 @@ class ConferenceApi(remote.Service):
         w_id = Conference.allocate_ids(size=1, parent=p_key)[0]
         w_key = ndb.Key(Wishlist, w_id, parent=p_key)
 
-        # create Conference, send email to organizer confirming
-        # creation of Conference & return (modified) ConferenceForm
+        # save new wishlist to datastore
         newWish = Wishlist(sessionKey=request.SessionKey)
         newWish.key = w_key
         newWish.put()
@@ -601,7 +602,7 @@ class ConferenceApi(remote.Service):
         return SessionForms(
             items=slist)
 
-    @endpoints.method(WishListQuery, WishListQuery,
+    @endpoints.method(WishListDelete, WishListDelete,
                       name='deleteSessionInWishlist')
     def deleteSessionInWishlist(self, request):
         """This function deletes specified wishlist of user"""
@@ -611,25 +612,25 @@ class ConferenceApi(remote.Service):
             raise endpoints.UnauthorizedException('Authorization required')
         user_id = getUserId(user)
 
-        # check for SessionKey
-        if not request.SessionKey:
+        # check for Wishlist key
+        if not request.WishKey:
                 raise endpoints.BadRequestException(
-                    "'SessionKey' field required")
+                    "'WishKey' field required")
 
-        # Try and get the session object
-        s_key = ndb.Key(urlsafe=request.SessionKey)
-        sess = s_key.get()
-        if not sess:
+        # Try and get the Wishlist object with Wishlist key
+        w_key = ndb.Key(urlsafe=request.WishKey)
+        wish = w_key.get()
+        if not wish:
             raise endpoints.NotFoundException(
-                'No Session found with key: %s' % request.SessionKey)
+                'No Wishlist found with key: %s' % request.WishKey)
 
         # Check that user is ancestor of wishlist
         p_key = ndb.Key(Profile, user_id)
-        if s_key.parent() != p_key:
+        if w_key.parent() != p_key:
             raise endpoints.BadRequestException("You don't own that wishlist")
 
-        # delete the key
-        s_key.delete()
+        # delete the wishlist
+        w_key.delete()
 
         return request
 
@@ -730,39 +731,40 @@ class ConferenceApi(remote.Service):
 
         print "In _cacheSpeaker"
 
-        # Try and get the session object
+        # Get key for session
         s_key = ndb.Key(urlsafe=sessionKey)
         sess = s_key.get()
+
+        # See if the session exists
         if not sess:
             # fail silently
             temp = "Failed to find session for featured speaker"
             memcache.set(MEMCACHE_FEATURED_KEY, temp)
             return
 
-        # format featured speaker and set it in memcache
-        announcement = FEATURED_TPL % sess.speaker
-        memcache.set(MEMCACHE_FEATURED_KEY, announcement)
+        # get ancestor key
+        c_key = s_key.parent()
+        print "Got ancestor key"
 
-    def _getFeaturedSpeaker(self, sessionKey):
-        """This function puts a featured speaker in taskqueue"""
-        taskqueue.add(params={'sessionKey': sessionKey},
-                      url='/tasks/set_featured')
+        # get all sibling sessions
+        allConfs = Session.query(ancestor=c_key)
+        allConfs = allConfs.filter(Session.speaker == sess.speaker)
+        print len(allConfs.fetch()), ": conferences"
 
-    @endpoints.method(WishListQuery, WishListQuery,
+        # Set featured speaker only if conditions are met
+        if len(allConfs.fetch()) > 1:
+            print "FEATURED SPEAKER"
+            # format featured speaker and set it in memcache
+            announcement = FEATURED_TPL % sess.speaker
+            memcache.set(MEMCACHE_FEATURED_KEY, announcement)
+
+
+    @endpoints.method(message_types.VoidMessage, StringMessage,
                       name='getFeaturedSpeaker')
     def getFeaturedSpeaker(self, request):
-        """Puts a features speaker in task queue for storage in memcache"""
-        # check for SessionKey
-        if not request.SessionKey:
-                raise endpoints.BadRequestException(
-                    "'SessionKey' field required")
-
-        # send to memcache
-        key = request.SessionKey
-        self._getFeaturedSpeaker(key)
-
-        # return
-        return request
+        """Returns the contents of the memcache message
+        for featured speaker"""
+        return StringMessage(data=memcache.get(MEMCACHE_FEATURED_KEY) or "")
 
 
 # - - - Profile objects - - - - - - - - - - - - - - - - - - -

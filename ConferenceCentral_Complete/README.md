@@ -98,4 +98,4 @@ Both solutions worked when tested in api explorer. These are endpoint functions 
 
 ## Task 4 Add a Task
 
-On the creation of a session, the speaker is automatically checked and a task is pushed into the task queue automatically if there is more than one session of this speaker in the same conference. This functionality can also be triggered manually by calling the endpoints method getFeaturedSpeaker(sessionKey) where the sessionKey is the valid urlsafe key of a session. In the case of manual triggering, the task will always be pushed. This allows a user to manually set a featured speaker even if they do not have more than one session thus increasing the app's flexibility.
+On the creation of a session, a task is pushed into the task queue automatically. If there is more than one session of this speaker in the same conference, the featured speaker in the memcache is updated. The contents of the featured speaker can be accessed via the endpoints method: getFeaturedSpeaker()
