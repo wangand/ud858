@@ -549,7 +549,6 @@ class ConferenceApi(remote.Service):
 
         # Add to wishlist
         # get Profile from datastore
-        user_id = getUserId(user)
         p_key = ndb.Key(Profile, user_id)
         profile = p_key.get()
         if not profile:
@@ -565,7 +564,7 @@ class ConferenceApi(remote.Service):
                 "That session is already in your wishlist")
 
         # generate Wishlist ID based on User ID
-        w_id = Conference.allocate_ids(size=1, parent=p_key)[0]
+        w_id = Wishlist.allocate_ids(size=1, parent=p_key)[0]
         w_key = ndb.Key(Wishlist, w_id, parent=p_key)
 
         # save new wishlist to datastore
@@ -654,7 +653,6 @@ class ConferenceApi(remote.Service):
         # Create and send message with all the keys, names, and organizers
         keys = []
         wsk = WebSafeKeys()
-        q = WebSafeKeyQuery()
         for i in items:
             temp = WebSafeKeyQuery(name=i[0], key=i[1], organizer=i[2])
             keys.append(temp)
