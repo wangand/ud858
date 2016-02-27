@@ -70,7 +70,7 @@ MEMCACHE_ANNOUNCEMENTS_KEY = "RECENT_ANNOUNCEMENTS"
 MEMCACHE_FEATURED_KEY = "FEATURED SPEAKER"
 ANNOUNCEMENT_TPL = ('Last chance to attend! The following conferences '
                     'are nearly sold out: %s')
-FEATURED_TPL = ('The featured speaker is: %s')
+FEATURED_TPL = ('The featured speaker is: %s in the sessions: ')
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 DEFAULTS = {
@@ -437,12 +437,6 @@ class ConferenceApi(remote.Service):
 
         # TASK 4
         # Check for featured speaker
-        #allConfs = Session.query(ancestor=c_key)
-        #allConfs = allConfs.filter(Session.speaker == data['speaker'])
-        #print len(allConfs.fetch())
-        #if len(allConfs.fetch()) > 1:
-        #    print "FEATURED SPEAKER"
-        #    self._getFeaturedSpeaker(s_key.urlsafe())
         taskqueue.add(params={'sessionKey': s_key.urlsafe()},
                       url='/tasks/set_featured')
 
@@ -561,6 +555,14 @@ class ConferenceApi(remote.Service):
         if not profile:
             raise endpoints.NotFoundException(
                 'No profile found')
+
+        # Check that the session does not already exist
+        # Prevent the same session from being added to wishlist
+        query = Wishlist.query(ancestor=p_key)
+        query = query.filter(Wishlist.sessionKey == request.SessionKey)
+        if len(query.fetch()) != 0:
+            raise endpoints.BadRequestException(
+                "That session is already in your wishlist")
 
         # generate Wishlist ID based on User ID
         w_id = Conference.allocate_ids(size=1, parent=p_key)[0]
@@ -753,11 +755,17 @@ class ConferenceApi(remote.Service):
 
         # Set featured speaker only if conditions are met
         if len(allConfs.fetch()) > 1:
+            # Get all sesssion names
             print "FEATURED SPEAKER"
+            temp = ""
+            for i in allConfs:
+                temp += i.sessionName
+                temp += ", "
+            temp = temp[:-2]  # remove the final comma and space
             # format featured speaker and set it in memcache
             announcement = FEATURED_TPL % sess.speaker
+            announcement += temp
             memcache.set(MEMCACHE_FEATURED_KEY, announcement)
-
 
     @endpoints.method(message_types.VoidMessage, StringMessage,
                       name='getFeaturedSpeaker')
